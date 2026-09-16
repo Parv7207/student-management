@@ -1,100 +1,93 @@
 const express = require("express");
+const mongoose = require("mongoose");
+require("dotenv").config();
+const Student = require("./models/Student");
 const app = express();
 app.use(express.json());
-let students =[
-    {
-        id: 1,
-        name: "Raj",
-        age: 20,
-        course: "BTech"
-    },
-    {
-        id: 2,
-        name: "Aman",
-        age: 21,
-        course: "BTech"
-    }
-];
+
 app.get("/",(req, res) =>{
     res.send("Backend is running");
 });
-app.get("/students",(req,res) =>{
-    res.json(students);
+app.get("/students", async(req,res) =>{
+    try{
+        const students = await Student.find();
+        res.json(students);
+    } catch(error){
+        res.status(500).json({message:"Failed to fetch students"});
+    }
 });
-app.get("/students/:id",(req,res) =>{
-    const id = Number(req.params.id);
+app.get("/students/:id", async(req, res) =>{
+    try{
+        const student = await Student.findById(req.params.id);
+        if(!student){
+            return res.status(404).json({message:"Student not found"});
+        }
+        res.json(student);
+    } catch(error){
+        res.status(400).json({message:"Invalid student ID"});
+    }
+});
 
-    if(isNaN(id)){
-        return res.status(400).json({
-            message: "Invalid student ID"
+app.post("/students", async(req,res) =>{
+    try{
+        const{name,age,course} =req.body;
+        if(!name || !age ||!course){
+            return res.status(400).json({
+                message:"Name, age and course are required"
+            });
+        }
+        const student = await Student.create({
+            name,
+            age,
+            course
         });
+        res.status(201).json(student);
+    } catch(error) {
+        res.status(500).json({message:"Failed to create student"});
     }
-    const student = students.find((student) => student.id === id);
-    if(!student){
-        return res.status(404).json({
-            message:"Student not found"
-        });
-    }
-    res.json(student);
 });
-app.post("/students",(req, res) =>{
-    const{name, age, course} = req.body;
-    if (!name || !age || !course){
-        return res.status(400).json({
-            message: "Name, age and course are required"
-        });
+
+app.put("/students/:id", async(req,res) =>{
+    try{
+        const{name,age,course} = req.body;
+        if(!name || !age || !course){
+            return res.status(400).json({
+                message:"Name, age and course are required"
+            });
+        }
+        const student = await Student.findByIdAndUpdate(
+            req.params.id,
+            {name, age, course},
+            {new:true}
+        );
+        if(!student){
+            return res.status(404).json({message:"Student not found"});
+        }
+        res.json(student);
+    } catch(error){
+        res.status(400).json({message:"Invalid student ID"});
     }
-    const newStudent ={
-        id: students.length+1,
-        name: name,
-        age: age,
-        course: course
-    };
-    students.push(newStudent);
-    res.status(201).json(newStudent);
 });
-app.put("/students/:id",(req, res) =>{
-    const id = Number(req.params.id);
-    if (isNaN(id)){
-        return res.status(400).json({
-            message:"Invalid student ID"
-        });
+
+app.delete("/students/:id", async(req,res) =>{
+    try{
+        const student = await Student.findByIdAndDelete(req.params.id);
+        if(!student){
+            return res.status(404).json({message:"Student not found"});
+        }
+        res.json({message:"Student deleted successfully"});
+    } catch(error){
+        res.status(400).json({message:"Invalid student ID"});
     }
-    const student = students.find((student) => student.id === id);
-    if (!student){
-        return res.status(404).json({
-            message:"Student not found"
-        });
-    }
-    const {name, age, course} = req.body;
-    if(!name || !age || !course){
-        return res.status(400).json({
-            message:"Name, age and course are required"
-        });
-    }
-    student.name = name;
-    student.age = age;
-    student.course = course;
-    res.json(student);
 });
-app.delete("/students/:id", (req, res) =>{
-    const id = Number(req.params.id);
-    if(isNaN(id)){
-        return res.status(400).json({
-            message:"Invalid student ID"
+
+mongoose.connect(process.env.MONGO_URI)
+    .then(() =>{
+        console.log("MongoDB connected successfully");
+        app.listen(3000,() =>{
+            console.log("Server running on port 3000");
         });
-    }
-    const studentIndex = students.findIndex((student) =>student.id === id);
-    if(studentIndex === -1){
-        return res.status(404).json({
-            message:"Student not found"
-        });
-    }
-    students.splice(studentIndex,1);
-    res.json({
-        message:"Student deleted successfully"
+    })
+    .catch((error) =>{
+        console.log("MongoDB connection failed",error.message);
     });
-});
-app.listen(3000,() =>{
-    console.log("Server running at http://localhost:3000");
-});
