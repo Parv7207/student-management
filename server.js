@@ -55,8 +55,7 @@ app.put("/students/:id", async(req,res) =>{
                 message:"Name, age and course are required"
             });
         }
-        const student = await Student.findByIdAndUpdate(
-            req.params.id,
+        const student = await Student.findByIdAndUpdate(req.params.id,
             {name, age, course},
             {new:true}
         );
@@ -92,7 +91,3 @@ mongoose.connect(process.env.MONGO_URI)
         console.log("MongoDB connection failed",error.message);
     });
     const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
